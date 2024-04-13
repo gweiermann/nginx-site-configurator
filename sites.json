@@ -1,0 +1,29 @@
+{
+    "out_file": "/etc/nginx/sites-available/00-auto_configuration.conf",
+    "ssl": {
+        "example.com": {
+            "certificate": "/etc/ssl/certs/example.com.cer",
+            "private": "/etc/ssl/certs/example.com.pem"
+        },
+        "*.example.com": {
+            "certificate": "/etc/ssl/certs/example.com.wildcard.cer",
+            "private": "/etc/ssl/certs/example.com.wildcard.pem"
+        }
+    },
+    "domain_redirect": {
+        "example.com": "www.example.com"
+    },
+    "reverse_proxy": {
+        "5000": "docker-thing1.example.com",
+        "8080": "docker-thing2.example.com"
+    },
+    "spa": {
+        "/var/www/html/project/public": {
+            "domain": "project.example.com",
+            "rewrite": "/about"
+        }
+    },
+    "php": {
+        "/var/www/php/other-project": "other-project.example.com"
+    }
+}
