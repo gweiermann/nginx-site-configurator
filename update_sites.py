@@ -28,8 +28,9 @@ def upgrade_https(domain):
         listen [::]:80;
         
         server_name {domain};
-
-        return 301 https://{domain};
+        location / {{
+            return 301 https://{domain};
+        }}
     }}"""
 
 
@@ -49,7 +50,7 @@ def build_domain_redirect(_from, to, *, temporary = True, ssl):
     }}"""
 
 
-def build_reverse_proxy(port, domain, *, ssl):
+def build_reverse_proxy(url, domain, *, ssl):
     return f"""
     server {{
         listen 443 ssl;
@@ -60,7 +61,7 @@ def build_reverse_proxy(port, domain, *, ssl):
         {ssl}
 
         location / {{
-            proxy_pass http://localhost:{port};
+            proxy_pass {url};
             proxy_set_header X-Real-IP $remote_addr;
             proxy_set_header Host $host;
             proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
@@ -77,8 +78,8 @@ def build_spa(root, conf, *, ssl):
     domain = conf['domain']
 
     rewrite = ""
-    if 'redirect' in conf:
-        rewrite = f"rewrite ^/$ https://$server_name{conf['rewrite']};;"
+    if 'rewrite' in conf:
+        rewrite = f"location / {{ rewrite ^/$ https://$server_name{conf['rewrite']}; }}"
 
     return f"""
     server {{
@@ -101,25 +102,6 @@ def build_spa(root, conf, *, ssl):
     """
 
 
-def build_php(root, domain, *, ssl):
-    return f"""
-    server {{
-        listen 443 ssl;
-        listen [::]:443 ssl;
-        server_name {domain};
-
-        {ssl}
-
-        location / {{
-            allow all;
-            index index.php;
-            include snippets/fastcgi-php.config;
-            fastcgi_pass unix:/run/php/php7.3-fpm.sock;
-        }}
-    }}
-    """
-
-
 config = read_config(config_filename)
 out_file = config['out_file']
 certs = config['ssl'].items()
@@ -134,21 +116,19 @@ def get_cert(domain):
 
 out = []
 
-for domain, to in config['domain_redirect'].items():
+for entry in config['entries']:
+    domain = entry['domain']
     out.append(upgrade_https(domain))
-    out.append(build_domain_redirect(domain, to, temporary=True, ssl=get_cert(domain)))
 
-for port, domain in config['reverse_proxy'].items():
-    out.append(upgrade_https(domain))
-    out.append(build_reverse_proxy(port, domain, ssl=get_cert(domain)))
-
-for root, config in config['spa'].items():
-    out.append(upgrade_https(config['domain']))
-    out.append(build_spa(root, config, ssl=get_cert(config['domain'])))
-
-# for root, domain in config['php'].items():
-#     out.append(upgrade_https(domain))
-#     out.append(build_php(root, domain, ssl=get_cert(domain)))
+    if 'redirect' in entry:
+        to = entry['redirect']
+        out.append(build_domain_redirect(domain, to, temporary=True, ssl=get_cert(domain)))
+    elif 'from_port' in entry:
+        port = entry['from_port']
+        out.append(build_reverse_proxy(f"http://localhost:{port}", domain, ssl=get_cert(domain)))
+    elif 'reverse_proxy' in entry:
+        url = entry['reverse_proxy']
+        out.append(build_reverse_proxy(url, domain, ssl=get_cert(domain)))
 
 def pretty(code):
     return '\n'.join(map(lambda x: x.replace('    ', '', 1), code.split('\n')))

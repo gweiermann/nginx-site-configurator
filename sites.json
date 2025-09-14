@@ -10,20 +10,22 @@
             "private": "/etc/ssl/certs/example.com.wildcard.pem"
         }
     },
-    "domain_redirect": {
-        "example.com": "www.example.com"
-    },
-    "reverse_proxy": {
-        "5000": "docker-thing1.example.com",
-        "8080": "docker-thing2.example.com"
-    },
-    "spa": {
-        "/var/www/html/project/public": {
-            "domain": "project.example.com",
-            "rewrite": "/about"
+    "entries": [
+        {
+            "domain": "example.com",
+            "redirect": "www.example.com"
+        },
+        {
+            "domain": "docker-thing1.example.com",
+            "from_port": 5000
+        },
+        {
+            "domain": "docker-thing2.example.com",
+            "from_port": 8080
+        },
+        {
+            "domain": "other-website.example.com",
+            "reverse_proxy": "http://cool-website.example"
         }
-    },
-    "php": {
-        "/var/www/php/other-project": "other-project.example.com"
-    }
+    ]
 }
