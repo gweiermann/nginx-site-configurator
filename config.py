@@ -1,61 +1,26 @@
 import json
-import os.path
-from typing import List
+from typing import List, Optional
 import re
+from os import path
 
 SSL_PATH = "/etc/ssl/certs"
-CONFIG_BASENAME = "sites.json"
 
-def load_configuration():
-    script_directory = path.dirname(path.realpath(__file__))
-    config_filename = path.join(script_directory, CONFIG_BASENAME)
-
-    configuration = Configuration.load(config_filename)
-    configuration.fill_missing_ssl_entries()
-    return configuration
 
 def domain_matches(specific_domain: str, potentially_wildcard_domain: str):
     # FIXME: there are a lot of edge cases:
-    regex = potentially_wildcard_domain.replace('.', '\.').replace('*', '[^.]+')
+    regex = potentially_wildcard_domain.replace('.', r'\.').replace('*', '[^.]+')
     return bool(re.match(regex, specific_domain))
-    
-class Configuration:
-    def load(filename):
-        with open(filename, 'r') as f:
-            raw = json.load(f)
-            out_file = raw['out_file']
-            ssl_entries = [SSLEntry.from_json(domain_name, entry) for domain_name, entry in raw['ssl'].items()]
-            entries = [Entry.from_json(entry) for entry in raw['entries']]
-            return Configuration(out_file, ssl_entries, entries)
 
-    def __init__(self, out_file: str, ssl_entries, entries):
-        self.out_file = out_file
-        self.ssl_entries = ssl_entries
-        self.entries = entries
-
-    def get_ssl_by_domain(self, domain_name: str):
-        for ssl in self.ssl_entries:
-            if domain_matches(domain_name, ssl.domain_name):
-                return ssl
-        return None
-
-    def fill_missing_ssl_entries(self):
-        for entry in self.entries:
-            if self.get_ssl_by_domain(entry.domain_name) is None:
-                self.ssl_entries.append(SSLEntry.by_domain(entry.domain_name))
-
-    def save(self, filename):
-        with open(filename, 'w') as f:
-            json.dump(f, {
-                'out_file': self.out_file,
-                'ssl': [e.to_json() for e in self.ssl_entries],
-                'entries': [e.to_json() for e in self.entries]
-            })
-
+def bautify_config(config):
+    config = re.sub(r'^\s*\n', '', config)
+    tabsize = len(re.match(r'^(\s*)', config).group(1))
+    tabregex = re.compile(r'^\s{0,' + str(tabsize) + '}')
+    config = '\n'.join(re.sub(tabregex, '', line) for line in config.split('\n'))
+    return re.sub('\n{3,}', '\n', config.strip())
 
 class SSLEntry:
-    def from_json(key: str, data):
-        return SSLEntry(key, data['certificate'], data['private'])
+    def from_json(data):
+        return SSLEntry(data['domain'], data['certificate'], data['private'])
 
     def cert_filename_by_domain(domain_name: str):
         if '*.' in domain_name:
@@ -76,31 +41,75 @@ class SSLEntry:
         self.pem_file = pem_file
 
     def exists(self):
-        return os.path.exists(self.cert_file) and os.path.exists(self.pem_file)
+        return path.exists(self.cert_file) and path.exists(self.pem_file)
 
-class Entry:
+    def get_nginx_header(self):
+        if not self.exists():
+            return f"""
+                listen 80;
+                listen [::]:80;
+            """.strip()
+        return f"""
+                listen 443 ssl;
+                listen [::]:443 ssl;
+
+                ssl_certificate {self.cert_file};
+                ssl_certificate_key {self.pem_file};
+        """.strip()
+
+    def generate_nginx_config(self):
+        if not self.exists():
+            return ''
+        return f"""
+            server {{
+                listen 80;
+                listen [::]:80;
+                
+                server_name {self.domain_name};
+                location / {{
+                    return 301 https://{self.domain_name};
+                }}
+            }}
+        """
+
+    def to_json(self):
+        return {
+            'domain': self.domain_name,
+            'certificate': self.cert_file,
+            'private': self.pem_file
+        }
+
+
+class Rule:
     def from_json(data):
-        types = [DockerEntry, RedirectEntry, ReverseProxyEntry]
+        types = [DockerRule, RedirectRule, ReverseProxyRule]
         for type in types:
             if type.is_suitable(data):
                 return type.from_json(data)
         raise Exception(f"Couldn't parse {json.dumps(data)}")
 
-class DockerEntry(Entry):
+    def __init__(self, domain_name: str, enabled: bool):
+        self.domain_name = domain_name
+        self.enabled = enabled
+
+    def is_enabled(self):
+        return self.enabled
+
+
+class DockerRule(Rule):
     def is_suitable(data):
         return 'from_port' in data
 
     def from_json(data):
-        return DockerEntry(data['domain'], data['from_port'], data.get('disabled', False))
+        return DockerRule(data['domain'], data['from_port'], data.get('enabled', True))
 
     def __init__(self, domain_name: str, port: int, enabled: bool):
-        self.domain_name = domain_name
+        super().__init__(domain_name, enabled)
         self.port = port
-        self.reverse_proxy = ReverseProxyEntry(domain_name, f'http://127.0.0.1:{port}', enabled)
-        self.enabled = enabled
+        self.reverse_proxy = ReverseProxyRule(domain_name, f'http://127.0.0.1:{port}', enabled)
 
-    def create_nginx_config(self):
-        pass
+    def generate_nginx_config(self, ssl: SSLEntry):
+        return self.reverse_proxy.generate_nginx_config(ssl)
 
     def get_identifier(self):
         return f"AUTOGENERATED DOCKER ENTRY with domain {self.domain_name} -> PORT {self.port}"
@@ -108,55 +117,85 @@ class DockerEntry(Entry):
     def to_json(self):
         return  {
             'domain': self.domain_name,
-            'from_port': self.port
+            'from_port': self.port,
+            'enabled': self.enabled
         }
 
     def to_columns(self):
         # Domain, Type, Data, Enabled
         return [self.domain_name, 'Docker', f'Port {self.port}', self.enabled and 'yes' or 'no']
 
-class RedirectEntry(Entry):
+
+class RedirectRule(Rule):
     def is_suitable(data):
         return 'redirect' in data
 
     def from_json(data):
-        return RedirectEntry(data['domain'], data['redirect'], data.get('disabled', False))
+        return RedirectRule(data['domain'], data['redirect'], data.get('enabled', True))
 
     def __init__(self, domain_name: str, redirect_domain: str, enabled: bool):
-        self.domain_name = domain_name
+        super().__init__(domain_name, enabled)
         self.redirect_domain = redirect_domain
-        self.enabled = enabled
+        self.temporary = True
 
     def get_identifier(self):
         return f"AUTOGENERATED REDIRECT ENTRY with domain {self.domain_name} -> domain {self.redirect_domain}"
 
-    def create_nginx_config(self):
-        pass
+    def generate_nginx_config(self, ssl: SSLEntry):
+        return f"""
+            server {{
+                {ssl.get_nginx_header()}
+
+                server_name {self.domain_name};
+
+                return {307 if self.temporary else 301} $scheme://{self.redirect_domain}$request_uri;
+            }}
+        """
+    
 
     def to_json(self):
         return  {
             'domain': self.domain_name,
-            'redirect': self.redirect_domain
+            'redirect': self.redirect_domain,
+            'enabled': self.enabled
         }
 
     def to_columns(self):
         # Domain, Type, Data, Enabled
         return [self.domain_name, 'Redirect', self.redirect_domain, self.enabled and 'yes' or 'no']
 
-class ReverseProxyEntry(Entry):
+class ReverseProxyRule(Rule):
     def is_suitable(data):
         return 'reverse_proxy' in data
 
     def from_json(data):
-        return ReverseProxyEntry(data['domain'], data['reverse_proxy'], data.get('disabled', False))
+        return ReverseProxyRule(data['domain'], data['reverse_proxy'], data.get('enabled', True))
 
     def __init__(self, domain_name: str, url: str, enabled: bool):
-        self.domain_name = domain_name
+        super().__init__(domain_name, enabled)
         self.url = url
-        self.enabled = enabled
 
-    def create_nginx_config(self):
-        pass
+    def generate_nginx_config(self, ssl: SSLEntry):
+        return f"""
+            server {{
+                {ssl.get_nginx_header()}
+
+                server_name {self.domain_name};
+
+                location / {{
+                    proxy_pass {self.url};
+                    proxy_set_header X-Real-IP $remote_addr;
+                    proxy_set_header Host $host;
+                    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+
+                    # WebSocket support (nginx 1.4)
+                    proxy_http_version 1.1;
+                    proxy_set_header Upgrade $http_upgrade;
+                    proxy_set_header Connection "upgrade";
+                }}
+            }}
+        """
+
 
     def get_identifier(self):
         return f"AUTOGENERATED REVERSE PROXY ENTRY with domain {self.domain_name} -> url {self.url}"
@@ -164,9 +203,86 @@ class ReverseProxyEntry(Entry):
     def to_json(self):
         return  {
             'domain': self.domain_name,
-            'reverse_proxy': self.url
+            'reverse_proxy': self.url,
+            'enabled': self.enabled
         }
 
     def to_columns(self):
         # Domain, Type, Data, Enabled
         return [self.domain_name, 'Reverse Proxy', self.url, self.enabled and 'yes' or 'no']
+
+
+
+class Configuration:
+    def load(filename):
+        with open(filename, 'r') as f:
+            raw = json.load(f)
+            out_file = raw['out_file']
+            ssl_entries = [SSLEntry.from_json(entry) for entry in raw['ssl']]
+            rules = [Rule.from_json(entry) for entry in raw['rules']]
+            return Configuration(filename, out_file, ssl_entries, rules)
+
+    def __init__(self, config_file: str, out_file: str, ssl_entries, rules):
+        self.config_file = config_file
+        self.out_file = out_file
+        self.ssl_entries = ssl_entries
+        self.rules = rules
+
+    def get_ssl_by_domain(self, domain_name: str):
+        for ssl in self.ssl_entries:
+            if domain_matches(domain_name, ssl.domain_name):
+                return ssl
+        return None
+
+    def get_rule_by_domain(self, domain_name: str):
+        for rule in self.rules:
+            if domain_matches(domain_name, rule.domain_name):
+                return rule
+        return None
+
+    def get_rule_by_port(self, port: int):
+        for rule in self.rules:
+            if getattr(rule, 'port', -1) == port:
+                return rule
+        return None
+
+    def fill_missing_ssl_entries(self):
+        for entry in self.rules:
+            if self.get_ssl_by_domain(entry.domain_name) is None:
+                self.ssl_entries.append(SSLEntry.by_domain(entry.domain_name))
+
+    def save(self):
+        with open(self.config_file, 'w') as f:
+            json.dump({
+                'out_file': self.out_file,
+                'ssl': [e.to_json() for e in self.ssl_entries],
+                'rules': [e.to_json() for e in self.rules]
+            }, f, indent=4)
+
+    def generate_nginx_config(self):
+        return '\n\n'.join(map(bautify_config, [
+            "### WARNING: This file is auto generated and is likely to be overwritten. Modifications can get lost. ###",
+            "# HTTPS Upgrades:",
+            *[e.generate_nginx_config() for e in self.ssl_entries if e.exists()],
+            "# Rules:",
+            *[e.generate_nginx_config(self.get_ssl_by_domain(e.domain_name)) for e in self.rules if e.is_enabled()]
+        ]))
+    
+    def apply_to_nginx_config(self):
+        with open(self.out_file, 'w') as f:
+            f.write(self.generate_nginx_config())
+
+    def add_rule(self, rule: Rule):
+        self.rules.append(rule)
+        existent_ssl = self.get_ssl_by_domain(rule.domain_name)
+        if existent_ssl is None:
+            self.ssl_entries.append(SSLEntry.by_domain(rule.domain_name))
+
+    def remove_rule(self, domain_name: str):
+        rule = self.get_rule_by_domain(domain_name)
+        if rule is None:
+            raise Exception("rule doesn't exist.")
+        existent_ssl = self.get_ssl_by_domain(rule.domain_name)
+        if existent_ssl is not None:
+            self.ssl_entries.remove(existent_ssl)
+        self.rules.remove(rule)

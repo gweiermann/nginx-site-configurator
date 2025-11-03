@@ -1,4 +1,15 @@
+import argparse
+from config import Configuration
+
+try:
+    import argcomplete
+except Exception:
+    argcomplete = None
+
 def parse_args():
+    # TODO: add autocomplete
+    # domain_names = [rule.domain_name for rule in configuration.rules] 
+
     parser = argparse.ArgumentParser(
         prog='nginx-cli',
         description='For setting up reverse proxies (docker apps), redirects and SSL.',

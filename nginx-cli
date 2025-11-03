@@ -19,49 +19,54 @@ This file only implements argument parsing and dispatch stubs. Business logic
 should be added to the corresponding functions below.
 """
 
-import argparse
+
 import sys
 from os import path
 from config import Configuration
 import actions
+from arguments import parse_args
 
+CONFIG_BASENAME = "sites.json"
 
-try:
-    import argcomplete
-except Exception:
-    argcomplete = None
+def get_config_filename():
+    script_directory = path.dirname(path.realpath(__file__))
+    return path.join(script_directory, CONFIG_BASENAME)
 
 
 def main(args, configuration) -> int:
     if args.command == 'ls':
-        actions.do_ls(configuration)
+        actions.ls(configuration)
         return 0
 
     if args.command == 'add':
         if args.add_type == 'docker':
-            add_docker(configuration, args.subdomain, args.port)
+            actions.add_docker(configuration, args.subdomain, args.port)
             return 0
         if args.add_type == 'redirect':
-            add_redirect(configuration, args.source, args.target)
+            actions.add_redirect(configuration, args.source, args.target)
             return 0
         if args.add_type == 'reverse-proxy':
-            add_reverse_proxy(configuration, args.subdomain, args.upstream)
+            actions.add_reverse_proxy(configuration, args.subdomain, args.upstream)
             return 0
 
     if args.command == 'setup-ssl':
-        setup_ssl(configuration, args.domains, getattr(args, 'wildcard', False))
+        actions.setup_ssl(configuration, args.domains, getattr(args, 'wildcard', False))
         return 0
 
     if args.command == 'remove':
-        remove_site(configuration, args.subdomain)
+        actions.remove_site(configuration, args.subdomain)
         return 0
 
     if args.command == 'disable':
-        disable_site(configuration, args.subdomain)
+        actions.disable_site(configuration, args.subdomain)
         return 0
 
     if args.command == 'enable':
-        enable_site(configuration, args.subdomain)
+        actions.enable_site(configuration, args.subdomain)
+        return 0
+
+    if args.command == 'apply':
+        actions.apply(configuration)
         return 0
 
     parser.print_help()
@@ -69,6 +74,13 @@ def main(args, configuration) -> int:
 
 
 if __name__ == '__main__':
-    args = parse_args()
-    configuration = load_configuration()
-    raise SystemExit(main(args, configuration))
+    try:    
+        args = parse_args()
+        configuration = Configuration.load(get_config_filename())
+        configuration.fill_missing_ssl_entries()
+        raise SystemExit(main(args, configuration))
+    except SystemExit as e:
+        raise e
+    except Exception as e:
+        raise e
+        print(str(e))
