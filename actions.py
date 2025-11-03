@@ -58,7 +58,7 @@ def add_docker(configuration: Configuration, domain_name: str, port: int) -> Non
 
 
 def add_redirect(configuration: Configuration, source: str, target: str) -> None:
-    assert_domain_is_available(configuration, domain_name)
+    assert_domain_is_available(configuration, source)
     configuration.add_rule(RedirectRule(source, target, True))
     apply(configuration)
 
