@@ -4,10 +4,6 @@
         "example.com": {
             "certificate": "/etc/ssl/certs/example.com.cer",
             "private": "/etc/ssl/certs/example.com.pem"
-        },
-        "*.example.com": {
-            "certificate": "/etc/ssl/certs/example.com.wildcard.cer",
-            "private": "/etc/ssl/certs/example.com.wildcard.pem"
         }
     },
     "entries": [

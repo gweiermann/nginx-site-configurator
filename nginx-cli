@@ -1,0 +1,74 @@
+#!/usr/bin/env python3
+
+"""
+nginx-cli
+
+Provides a small command line parser for managing site configuration.
+
+Supported commands (implemented as argparse stubs):
+ - ls
+ - add docker <sub.domain.tld> <Port>
+ - add redirect <sub.domain.tld> <other.domain.tld>
+ - add reverse-proxy <sub.domain.tld> <https://example.com>
+ - setup-ssl [--for DOMAIN]...  (repeat --for to specify multiple domains)
+ - remove <sub.domain.tld>
+ - disable <sub.domain.tld>
+ - enable <sub.domain.tld>
+
+This file only implements argument parsing and dispatch stubs. Business logic
+should be added to the corresponding functions below.
+"""
+
+import argparse
+import sys
+from os import path
+from config import Configuration
+import actions
+
+
+try:
+    import argcomplete
+except Exception:
+    argcomplete = None
+
+
+def main(args, configuration) -> int:
+    if args.command == 'ls':
+        actions.do_ls(configuration)
+        return 0
+
+    if args.command == 'add':
+        if args.add_type == 'docker':
+            add_docker(configuration, args.subdomain, args.port)
+            return 0
+        if args.add_type == 'redirect':
+            add_redirect(configuration, args.source, args.target)
+            return 0
+        if args.add_type == 'reverse-proxy':
+            add_reverse_proxy(configuration, args.subdomain, args.upstream)
+            return 0
+
+    if args.command == 'setup-ssl':
+        setup_ssl(configuration, args.domains, getattr(args, 'wildcard', False))
+        return 0
+
+    if args.command == 'remove':
+        remove_site(configuration, args.subdomain)
+        return 0
+
+    if args.command == 'disable':
+        disable_site(configuration, args.subdomain)
+        return 0
+
+    if args.command == 'enable':
+        enable_site(configuration, args.subdomain)
+        return 0
+
+    parser.print_help()
+    return 2
+
+
+if __name__ == '__main__':
+    args = parse_args()
+    configuration = load_configuration()
+    raise SystemExit(main(args, configuration))
