@@ -1,6 +1,7 @@
 from config import Configuration, DockerRule, RedirectRule, ReverseProxyRule
 from tabulate import tabulate
 from typing import List, Optional
+from os import path
 
 def ls(configuration: Configuration) -> None:
     print()
@@ -36,6 +37,16 @@ def assert_port_is_available(configuration: Configuration, port: int):
 def apply(configuration: Configuration):
     configuration.save()
     configuration.apply_to_nginx_config()
+
+    basename = path.basename(configuration.out_file)
+
+    print(f"wrote file to {configuration.out_file}.")
+    print()
+    print("if not happend, enable the configuration in nginx:")
+    print(f"sudo ln -s /etc/nginx/sites-available/{basename} /etc/nginx/sites-enabled/{basename}")
+    print()
+    print("run `service nginx reload` to apply the changes.")
+
     print("To apply these changes, run: \nsudo service nginx reload")
 
 

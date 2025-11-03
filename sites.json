@@ -1,5 +1,5 @@
 {
-    "out_file": "./out.conf",
+    "out_file": "/etc/nginx/sites-available/00-auto_configuration.conf",
     "ssl": [
         {
             "domain": "example.com",
