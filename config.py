@@ -4,6 +4,7 @@ import re
 from os import path
 
 SSL_PATH = "/etc/ssl/certs"
+DEFAULT_OUT_FILE = "/etc/nginx/sites-available/00-auto_configuration.conf"
 
 
 def domain_matches(specific_domain: str, potentially_wildcard_domain: str):
@@ -217,12 +218,15 @@ class ReverseProxyRule(Rule):
 
 class Configuration:
     def load(filename):
-        with open(filename, 'r') as f:
-            raw = json.load(f)
-            out_file = raw['out_file']
-            ssl_entries = [SSLEntry.from_json(entry) for entry in raw['ssl']]
-            rules = [Rule.from_json(entry) for entry in raw['rules']]
-            return Configuration(filename, out_file, ssl_entries, rules)
+        try:
+            with open(filename, 'r') as f:
+                raw = json.load(f)
+                out_file = raw['out_file']
+                ssl_entries = [SSLEntry.from_json(entry) for entry in raw['ssl']]
+                rules = [Rule.from_json(entry) for entry in raw['rules']]
+                return Configuration(filename, out_file, ssl_entries, rules)
+        except:
+            return Configuration(filename, DEFAULT_OUT_FILE, [], [])
 
     def __init__(self, config_file: str, out_file: str, ssl_entries, rules):
         self.config_file = config_file
