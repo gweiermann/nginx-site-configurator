@@ -19,6 +19,7 @@ def parse_args():
 
     # ls
     parser_ls = subparsers.add_parser('ls', help='Lists the whole configuration.')
+    parser_ls.add_argument('--ssl', action='store_true', help='List all SSL certificates instead of rules.')
 
     # apply
     parser_apply = subparsers.add_parser('apply', help='Updates the nginx configuration with the current setup.')

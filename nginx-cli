@@ -7,6 +7,7 @@ Provides a small command line parser for managing site configuration.
 
 Supported commands (implemented as argparse stubs):
  - ls
+ - ls_ssl
  - add docker <sub.domain.tld> <Port>
  - add redirect <sub.domain.tld> <other.domain.tld>
  - add reverse-proxy <sub.domain.tld> <https://example.com>
@@ -35,6 +36,9 @@ def get_config_filename():
 
 def main(args, configuration) -> int:
     if args.command == 'ls':
+        if args.ssl:
+            actions.ls_ssl(configuration)
+            return 0
         actions.ls(configuration)
         return 0
 

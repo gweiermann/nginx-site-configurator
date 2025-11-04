@@ -4,22 +4,13 @@ from typing import List, Optional
 from os import path
 
 def ls(configuration: Configuration) -> None:
-    print()
-    print("======================")
-    print("| SSL Certificates   |")
-    print("======================")
     ssl = [[entry.domain_name, entry.exists() and 'yes' or 'no'] for entry in configuration.ssl_entries]
     print(tabulate(ssl, headers=['Domain', 'Configured'], tablefmt='orgtbl'))
 
-    print()
-
-    print("======================")
-    print("| Rules              |")
-    print("======================")
+def ls_ssl(configuration: Configuration) -> None:
     entries = [[*entry.to_columns(), configuration.get_ssl_by_domain(entry.domain_name).exists() and 'yes' or 'no'] for entry in configuration.rules]
     print(tabulate(entries, headers=['Domain', 'Type', 'Configuration', 'Enabled', 'Secured'], tablefmt='orgtbl'))
     print()
-
 
 def assert_domain_is_available(configuration: Configuration, domain_name: str):
     existing_rule = configuration.get_rule_by_domain(domain_name)
@@ -79,19 +70,20 @@ def setup_ssl(configuration: Configuration, domains: Optional[List[str]], wildca
 
     if len(ssl_entries) == 0:
         print("You're all set. Each rule is already secured.")
+        return
 
-    ssls = [[entry.domain_name, entry.exists() and 'yes' or 'no'] for entry in configuration.ssl_entries]
+    ssls = [[entry.domain_name] for entry in configuration.ssl_entries]
     issue_script = "acme.sh --issue --nginx " + ' '.join(f"-d {ssl.domain_name}" for ssl in ssl_entries)
     install_script = '\n'.join(f"""
 acme.sh --install-cert -d {ssl.domain_name} \\
-    --key-file       {ssl.cert_file}  \\
-    --fullchain-file {ssl.pem_file} \\
-    --reloadcmd     "service nginx force-reload
-""" for ssl in ssl_entries)
+    --key-file       {ssl.pem_file}  \\
+    --fullchain-file {ssl.cert_file} \\
+    --reloadcmd     "service nginx force-reload"
+""".strip() for ssl in ssl_entries)
 
     print()
     print("The following domains need to be secured:\n")
-    print(tabulate(ssls, headers=['Domain', 'Configured'], tablefmt='orgtbl'))
+    print(tabulate(ssls, headers=['Domain'], tablefmt='orgtbl'))
 
     print(f"""
 To enable ssl support for all of them follow the following steps:
