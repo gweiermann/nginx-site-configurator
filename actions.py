@@ -44,14 +44,6 @@ def assert_host_is_available(configuration: Configuration, hostname: str):
         if not confirm("A rule with given host name already exists. Do you want to replace it?"):
             raise Exception("Operation was aborted.")
 
-
-def assert_port_is_available(configuration: Configuration, port: int):
-    existing_rule = configuration.get_rule_by_port(port)
-    if existing_rule is not None:
-        raise Exception(f"Error: A rule with given port already exists: {existing_rule.hostname}. Please remove it beforehand if you want to replace the configuration.")
-
-
-
 def apply(configuration: Configuration):
     configuration.save()
     configuration.apply_to_nginx_config()
@@ -70,7 +62,6 @@ def apply(configuration: Configuration):
 
 def add_docker(configuration: Configuration, hostname: str, port: int) -> None:
     assert_host_is_available(configuration, hostname)
-    assert_port_is_available(configuration, port)
     configuration.add_rule(DockerRule(hostname, port, True))
     apply(configuration)
 
