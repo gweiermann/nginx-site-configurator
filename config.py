@@ -279,6 +279,9 @@ class Configuration:
             f.write(self.generate_nginx_config())
 
     def add_rule(self, rule: Rule):
+        existent_rule = self.get_rule_by_domain(rule.domain_name)
+        if existent_rule:
+            self.rules.remove(existent_rule)
         self.rules.append(rule)
         existent_ssl = self.get_ssl_by_domain(rule.domain_name)
         if existent_ssl is None:

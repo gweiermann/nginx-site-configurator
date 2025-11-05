@@ -12,10 +12,37 @@ def ls_ssl(configuration: Configuration) -> None:
     print(tabulate(entries, headers=['Domain', 'Type', 'Configuration', 'Enabled', 'Secured'], tablefmt='orgtbl'))
     print()
 
+def confirm(message: str):
+    """Prompt the user to confirm an action.
+
+    The prompt treats Enter as the default "yes" answer. Returns True for
+    yes, False for no. Keeps prompting until a valid answer is given.
+    """
+    prompt = f"{message} [Y/n]: "
+    while True:
+        try:
+            resp = input(prompt)
+        except EOFError:
+            # If input is not available, treat as negative to be safe
+            return False
+
+        # Default to 'yes' when pressing Enter
+        if resp == "":
+            return True
+
+        value = resp.strip().lower()
+        if value in ("y", "yes"):
+            return True
+        if value in ("n", "no"):
+            return False
+
+        print("Please enter 'y' or 'n' (default: 'y').")
+
 def assert_domain_is_available(configuration: Configuration, domain_name: str):
     existing_rule = configuration.get_rule_by_domain(domain_name)
     if existing_rule is not None:
-        raise Exception("Error: A rule with given domain name already exists. Please remove it beforehand if you want to replace the configuration.")
+        if not confirm("A rule with given domain name already exists. Do you want to replace it?"):
+            raise Exception("Operation was aborted.")
 
 
 def assert_port_is_available(configuration: Configuration, port: int):
