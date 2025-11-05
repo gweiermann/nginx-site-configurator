@@ -127,8 +127,19 @@ source ~/.bashrc
 {install_script}
 """)
 
-def remove_site(configuration: Configuration, hostname: str) -> None:
-    configuration.remove_rule(hostname)
+def remove_site(configuration: Configuration, hostname) -> None:
+    """Remove a single host or a list of hosts from the configuration.
+
+    hostname may be a single hostname (str) or an iterable of hostnames.
+    After removing the specified hosts the configuration is applied.
+    """
+    # Support both a single hostname and a list of hostnames
+    if isinstance(hostname, (list, tuple)):
+        for h in hostname:
+            configuration.remove_rule(h)
+    else:
+        configuration.remove_rule(hostname)
+
     apply(configuration)
 
 

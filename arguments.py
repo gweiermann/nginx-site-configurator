@@ -48,8 +48,8 @@ def parse_args():
                             help='Enable wildcard support for hostnames (treat patterns like *.domain.tld)')
 
     # remove/disable/enable
-    parser_remove = subparsers.add_parser('remove', help='Remove an entry from the configuration')
-    parser_remove.add_argument('hostname', help='sub.domain.tld to remove')
+    parser_remove = subparsers.add_parser('remove', help='Remove one or more entries from the configuration')
+    parser_remove.add_argument('hostname', nargs='+', help='One or more sub.domain.tld values to remove')
 
     parser_disable = subparsers.add_parser('disable', help='Disable a configured site')
     parser_disable.add_argument('hostname', help='sub.domain.tld to disable')
