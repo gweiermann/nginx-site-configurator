@@ -8,7 +8,7 @@ except Exception:
 
 def parse_args():
     # TODO: add autocomplete
-    # domain_names = [rule.domain_name for rule in configuration.rules] 
+    # hostnames = [rule.hostname for rule in configuration.rules] 
 
     parser = argparse.ArgumentParser(
         prog='nginx-cli',
@@ -29,7 +29,7 @@ def parse_args():
     add_sub = parser_add.add_subparsers(dest='add_type', required=True)
 
     p_docker = add_sub.add_parser('docker', help='Add docker-backed site')
-    p_docker.add_argument('subdomain', help='sub.domain.tld for the site')
+    p_docker.add_argument('hostname', help='sub.domain.tld for the site')
     p_docker.add_argument('port', type=int, help='Local port where docker container listens')
 
     p_redirect = add_sub.add_parser('redirect', help='Add a redirect from one host to another')
@@ -37,25 +37,25 @@ def parse_args():
     p_redirect.add_argument('target', help='Destination domain (e.g. other.domain.tld)')
 
     p_rp = add_sub.add_parser('reverse-proxy', help='Add a reverse proxy to an upstream URL')
-    p_rp.add_argument('subdomain', help='sub.domain.tld for the proxy')
+    p_rp.add_argument('hostname', help='sub.domain.tld for the proxy')
     p_rp.add_argument('upstream', help='Upstream URL, e.g. https://example.com')
 
     # setup-ssl
     parser_ssl = subparsers.add_parser('setup-ssl', help='Create/renew SSL certificates')
     parser_ssl.add_argument('--for', dest='domains', action='append', metavar='DOMAIN',
-                            help='Domain to enable SSL for. Can be repeated; if omitted, acts on all domains.')
+                            help='Host to enable SSL for. Can be repeated; if omitted, acts on all domains.')
     parser_ssl.add_argument('--wildcard', action='store_true', dest='wildcard',
-                            help='Enable wildcard support for subdomains (treat patterns like *.domain.tld)')
+                            help='Enable wildcard support for hostnames (treat patterns like *.domain.tld)')
 
     # remove/disable/enable
     parser_remove = subparsers.add_parser('remove', help='Remove an entry from the configuration')
-    parser_remove.add_argument('subdomain', help='sub.domain.tld to remove')
+    parser_remove.add_argument('hostname', help='sub.domain.tld to remove')
 
     parser_disable = subparsers.add_parser('disable', help='Disable a configured site')
-    parser_disable.add_argument('subdomain', help='sub.domain.tld to disable')
+    parser_disable.add_argument('hostname', help='sub.domain.tld to disable')
 
     parser_enable = subparsers.add_parser('enable', help='Enable a configured site')
-    parser_enable.add_argument('subdomain', help='sub.domain.tld to enable')
+    parser_enable.add_argument('hostname', help='sub.domain.tld to enable')
 
     if argcomplete:
         try:

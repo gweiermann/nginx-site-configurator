@@ -44,29 +44,29 @@ def main(args, configuration) -> int:
 
     if args.command == 'add':
         if args.add_type == 'docker':
-            actions.add_docker(configuration, args.subdomain, args.port)
+            actions.add_docker(configuration, args.hostname, args.port)
             return 0
         if args.add_type == 'redirect':
             actions.add_redirect(configuration, args.source, args.target)
             return 0
         if args.add_type == 'reverse-proxy':
-            actions.add_reverse_proxy(configuration, args.subdomain, args.upstream)
+            actions.add_reverse_proxy(configuration, args.hostname, args.upstream)
             return 0
 
     if args.command == 'setup-ssl':
-        actions.setup_ssl(configuration, args.domains, getattr(args, 'wildcard', False))
+        actions.setup_ssl(configuration, args.hosts, getattr(args, 'wildcard', False))
         return 0
 
     if args.command == 'remove':
-        actions.remove_site(configuration, args.subdomain)
+        actions.remove_site(configuration, args.hostname)
         return 0
 
     if args.command == 'disable':
-        actions.disable_site(configuration, args.subdomain)
+        actions.disable_site(configuration, args.hostname)
         return 0
 
     if args.command == 'enable':
-        actions.enable_site(configuration, args.subdomain)
+        actions.enable_site(configuration, args.hostname)
         return 0
 
     if args.command == 'apply':
