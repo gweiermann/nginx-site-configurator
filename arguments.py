@@ -42,8 +42,8 @@ def parse_args():
 
     # setup-ssl
     parser_ssl = subparsers.add_parser('setup-ssl', help='Create/renew SSL certificates')
-    parser_ssl.add_argument('--for', dest='domains', action='append', metavar='DOMAIN',
-                            help='Host to enable SSL for. Can be repeated; if omitted, acts on all domains.')
+    parser_ssl.add_argument('--for', dest='hosts', action='append', metavar='DOMAIN',
+                            help='Host to enable SSL for. Can be repeated; if omitted, acts on all hosts.')
     parser_ssl.add_argument('--wildcard', action='store_true', dest='wildcard',
                             help='Enable wildcard support for hostnames (treat patterns like *.domain.tld)')
 
