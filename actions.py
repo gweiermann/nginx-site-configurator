@@ -72,7 +72,7 @@ def setup_ssl(configuration: Configuration, domains: Optional[List[str]], wildca
         print("You're all set. Each rule is already secured.")
         return
 
-    ssls = [[entry.domain_name] for entry in configuration.ssl_entries]
+    ssls = [[entry.domain_name] for entry in configuration.ssl_entries if entry.exists()]
     issue_script = "acme.sh --issue --nginx " + ' '.join(f"-d {ssl.domain_name}" for ssl in ssl_entries)
     install_script = '\n'.join(f"""
 acme.sh --install-cert -d {ssl.domain_name} \\
