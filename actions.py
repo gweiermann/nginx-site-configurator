@@ -4,13 +4,14 @@ from typing import List, Optional
 from os import path
 
 def ls(configuration: Configuration) -> None:
-    ssl = [[entry.hostname, entry.exists() and 'yes' or 'no'] for entry in configuration.ssl_entries]
-    print(tabulate(ssl, headers=['Host', 'Configured'], tablefmt='orgtbl'))
-
-def ls_ssl(configuration: Configuration) -> None:
     entries = [[*entry.to_columns(), configuration.get_ssl_by_host(entry.hostname).exists() and 'yes' or 'no'] for entry in configuration.rules]
     print(tabulate(entries, headers=['Host', 'Type', 'Configuration', 'Enabled', 'Secured'], tablefmt='orgtbl'))
     print()
+
+def ls_ssl(configuration: Configuration) -> None:
+    
+    ssl = [[entry.hostname, entry.exists() and 'yes' or 'no'] for entry in configuration.ssl_entries]
+    print(tabulate(ssl, headers=['Host', 'Configured'], tablefmt='orgtbl'))
 
 def confirm(message: str):
     """Prompt the user to confirm an action.
