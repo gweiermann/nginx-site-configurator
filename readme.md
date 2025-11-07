@@ -1,13 +1,24 @@
-# What is it?
+# nginx-cli at a Glance
 
-It's a lightweight .conf generator for your nginx host configuration.
-It will handle ssl, https upgrade, redirects to other domains/hostnames, reverse proxies (with websocket integration), setting up single page applications (spa), php websites (not working at the moment).
+`nginx-cli` is a small helper that keeps an `nginx` virtual-host list in a single `sites.json` file and writes the final config for you. Run it from the project root with `python nginx-cli <command>`. Each command updates `sites.json` immediately and regenerates your nginx config when needed.
 
-# Setup
+## Commands & Examples
+- **`ls`** – shows every configured host and whether it already uses SSL.
+  - Example: `python nginx-cli ls`
+  - Add `--ssl` to see only certificate status: `python nginx-cli ls --ssl`
+- **`add docker <host> <port>`** – points a domain at a Docker container that listens on a local port.
+  - Example: `python nginx-cli add docker app.example.com 8080`
+- **`add redirect <from> <to>`** – sends visitors from one host to another.
+  - Example: `python nginx-cli add redirect old.example.com new.example.org`
+- **`add reverse-proxy <host> <upstream>`** – forwards traffic to an external HTTPS URL.
+  - Example: `python nginx-cli add reverse-proxy status.example.com https://statuspage.com`
+- **`setup-ssl [--for DOMAIN] [--wildcard]`** – prints the `acme.sh` commands you need to issue and install missing certificates.
+  - Example: `python nginx-cli setup-ssl`
+- **`remove <host...>`** – deletes one or more hosts from the config.
+  - Example: `python nginx-cli remove blog.example.com`
+- **`disable <host>` / `enable <host>`** – toggle whether a host is served without removing it.
+  - Example: `python nginx-cli disable beta.example.com`
+- **`apply`** – rewrites your local nginx config file and reminds you to reload nginx.
+  - Example: `python nginx-cli apply`
 
-Get the script [update_sites.py](update_sites.py) and place a file named [sites.json](sites.json) in that same directory (you can change the filename inside `update_sites.py` at `config_filename`)
-
-The file [sites.json](sites.json) in this repository tries to show you an example how to use.
-There are no more functionalites than shown in that file. If you don't want to use one thing like 'spa' you mustn't delete it. Just leave it empty :)
-
-#
+After changing the config, run `python nginx-cli apply` and then on your server: `sudo service nginx reload`.
