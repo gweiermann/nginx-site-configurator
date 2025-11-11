@@ -34,7 +34,7 @@ class SSLEntry:
                 listen 80;
                 listen [::]:80;
             """.strip()
-        return """
+        return f"""
                 listen 443 ssl;
                 listen [::]:443 ssl;
 
