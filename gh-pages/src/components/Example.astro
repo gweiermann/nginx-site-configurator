@@ -1,0 +1,8 @@
+---
+const { title, cmd, note } = Astro.props;
+---
+<div class="rounded-xl bg-slate-900/60 p-4 shadow-soft ring-1 ring-white/10">
+    <h3 class="text-sm font-semibold text-white">{title}</h3>
+    <pre class="mt-2 overflow-x-auto"><code class="language-bash">{cmd}</code></pre>
+    {note && <p class="mt-2 text-xs text-slate-400">{note}</p>}
+</div>

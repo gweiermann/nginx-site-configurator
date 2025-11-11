@@ -1,0 +1,25 @@
+---
+import Example from "./Example.astro";
+
+---
+
+<section id="examples" class="relative mx-auto w-full max-w-6xl px-6 py-12">
+	<h2 class="text-white">CLI examples</h2>
+	<p class="mt-2 max-w-3xl text-slate-300">
+		Real-world snippets you can copy-paste. Use tab-completion to discover hosts and flags as you type.
+	</p>
+
+	<div class="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+		<Example title="List all hosts" cmd="nginx-cli ls" note="Add --ssl to show certificate status only" />
+		<Example title="Show SSL status only" cmd="nginx-cli ls --ssl" />
+		<Example title="Add a Docker backend" cmd="nginx-cli add docker example.com 8080" note="Maps example.com -> http://127.0.0.1:8080" />
+		<Example title="Add a redirect" cmd="nginx-cli add redirect www.example.com example.com" />
+		<Example title="Add a reverse proxy" cmd="nginx-cli add reverse-proxy api.example.com https://upstream.example.com" />
+		<Example title="Disable a host (keep in config)" cmd="nginx-cli disable example.com" />
+		<Example title="Enable a host" cmd="nginx-cli enable example.com" />
+		<Example title="Remove multiple hosts" cmd="nginx-cli remove a.example.com b.example.com c.example.com" />
+		<Example title="Generate SSL steps" cmd="nginx-cli setup-ssl --for example.com" note="Add --wildcard for *.example.com" />
+		<Example title="Write nginx config" cmd="nginx-cli apply" note="Then reload nginx: sudo service nginx reload" />
+	</div>
+</section>
+
