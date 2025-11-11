@@ -1,0 +1,102 @@
+#!/usr/bin/env python3
+
+"""
+nginx-cli
+
+Provides a small command line parser for managing site configuration.
+
+Supported commands (implemented as argparse stubs):
+ - ls
+ - ls_ssl
+ - add docker <sub.domain.tld> <Port>
+ - add redirect <sub.domain.tld> <other.domain.tld>
+ - add reverse-proxy <sub.domain.tld> <https://example.com>
+ - setup-ssl [--for DOMAIN]...  (repeat --for to specify multiple domains)
+ - remove <sub.domain.tld>
+ - disable <sub.domain.tld>
+ - enable <sub.domain.tld>
+
+This file only implements argument parsing and dispatch stubs. Business logic
+should be added to the corresponding functions below.
+"""
+
+
+import sys
+from os import path
+from pathlib import Path
+
+import actions
+from arguments import parse_args
+from config import Configuration
+
+CONFIG_BASENAME = "sites.json"
+
+def get_config_filename():
+    script_directory = path.dirname(path.realpath(__file__))
+    return path.join(script_directory, CONFIG_BASENAME)
+
+
+
+
+def main(args, configuration) -> int:
+    if args.command == 'ls':
+        if args.ssl:
+            actions.ls_ssl(configuration)
+            return 0
+        actions.ls(configuration)
+        return 0
+
+    if args.command == 'add':
+        if args.add_type == 'docker':
+            actions.add_docker(configuration, args.hostname, args.port)
+            return 0
+        if args.add_type == 'redirect':
+            actions.add_redirect(configuration, args.source, args.target)
+            return 0
+        if args.add_type == 'reverse-proxy':
+            actions.add_reverse_proxy(configuration, args.hostname, args.upstream)
+            return 0
+
+    if args.command == 'setup-ssl':
+        actions.setup_ssl(configuration, args.hosts, getattr(args, 'wildcard', False))
+        return 0
+
+    if args.command == 'remove':
+        actions.remove_site(configuration, args.hostname)
+        return 0
+
+    if args.command == 'disable':
+        actions.disable_site(configuration, args.hostname)
+        return 0
+
+    if args.command == 'enable':
+        actions.enable_site(configuration, args.hostname)
+        return 0
+
+    if args.command == 'apply':
+        actions.apply(configuration)
+        return 0
+
+    return 2
+
+
+if __name__ == '__main__':
+    try:
+        args = parse_args()
+
+        if getattr(args, 'install', False):
+            actions.install_cli(Path(sys.argv[0]))
+            raise SystemExit(0)
+
+        if getattr(args, 'uninstall', False):
+            actions.uninstall_cli(Path(sys.argv[0]))
+            raise SystemExit(0)
+
+        configuration = Configuration.load(get_config_filename())
+        configuration.fill_missing_ssl_entries()
+        raise SystemExit(main(args, configuration))
+    except SystemExit as e:
+        raise e
+    except Exception as e:
+        raise e
+        print(str(e))

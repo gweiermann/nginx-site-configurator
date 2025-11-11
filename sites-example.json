@@ -1,0 +1,37 @@
+{
+    "out_file": "/etc/nginx/sites-available/00-auto_configuration.conf",
+    "ssl": [
+        {
+            "host": "example.com",
+            "certificate": "/etc/ssl/certs/example.com.cer",
+            "private": "/etc/ssl/certs/example.com.pem"
+        },
+        {
+            "host": "docker-thing1.example.com",
+            "certificate": "/etc/ssl/certs/docker-thing1.example.com.cert",
+            "private": "/etc/ssl/certs/docker-thing1.example.com.pem"
+        },
+        {
+            "host": "docker-thing2.example.com",
+            "certificate": "/etc/ssl/certs/docker-thing2.example.com.cert",
+            "private": "/etc/ssl/certs/docker-thing2.example.com.pem"
+        }
+    ],
+    "rules": [
+        {
+            "host": "example.com",
+            "redirect": "www.example.com",
+            "enabled": true
+        },
+        {
+            "host": "docker-thing1.example.com",
+            "from_port": 5000,
+            "enabled": true
+        },
+        {
+            "host": "docker-thing2.example.com",
+            "from_port": 8080,
+            "enabled": true
+        }
+    ]
+}
