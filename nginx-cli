@@ -23,15 +23,19 @@ should be added to the corresponding functions below.
 
 import sys
 from os import path
-from config import Configuration
+from pathlib import Path
+
 import actions
 from arguments import parse_args
+from config import Configuration
 
 CONFIG_BASENAME = "sites.json"
 
 def get_config_filename():
     script_directory = path.dirname(path.realpath(__file__))
     return path.join(script_directory, CONFIG_BASENAME)
+
+
 
 
 def main(args, configuration) -> int:
@@ -73,13 +77,21 @@ def main(args, configuration) -> int:
         actions.apply(configuration)
         return 0
 
-    parser.print_help()
     return 2
 
 
 if __name__ == '__main__':
-    try:    
+    try:
         args = parse_args()
+
+        if getattr(args, 'install', False):
+            actions.install_cli(Path(sys.argv[0]))
+            raise SystemExit(0)
+
+        if getattr(args, 'uninstall', False):
+            actions.uninstall_cli(Path(sys.argv[0]))
+            raise SystemExit(0)
+
         configuration = Configuration.load(get_config_filename())
         configuration.fill_missing_ssl_entries()
         raise SystemExit(main(args, configuration))

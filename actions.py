@@ -1,7 +1,11 @@
+from pathlib import Path
+
 from config import Configuration, DockerRule, RedirectRule, ReverseProxyRule
 from tabulate import tabulate
 from typing import List, Optional
 from os import path
+
+import installer
 
 def ls(configuration: Configuration) -> None:
     entries = [[*entry.to_columns(), configuration.get_ssl_by_host(entry.hostname).exists() and 'yes' or 'no'] for entry in configuration.rules]
@@ -145,3 +149,11 @@ def enable_site(configuration: Configuration, hostname: str) -> None:
     rule = configuration.get_rule_by_host(hostname)
     rule.enabled = True
     apply(configuration)
+
+
+def install_cli(source: Path) -> None:
+    installer.install_cli(Path(source))
+
+
+def uninstall_cli(current: Path) -> None:
+    installer.uninstall_cli(Path(current))
