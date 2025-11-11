@@ -1,0 +1,47 @@
+---
+const { title = 'nginx-cli', description = 'Single-file Nginx vhost manager with a powerful CLI' } = Astro.props;
+---
+
+<html lang="en" class="scroll-smooth">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<meta name="description" content={description} />
+		<link rel="icon" href="/favicon.svg" />
+		<title>{title}</title>
+	</head>
+	<body class="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-800 text-slate-100 antialiased">
+		<main class="relative">
+			<div aria-hidden="true" class="pointer-events-none absolute inset-0 overflow-hidden">
+				<div class="absolute -top-40 left-1/2 size-[56rem] -translate-x-1/2 rounded-full bg-brand-600/20 blur-[120px]"></div>
+			</div>
+			<slot />
+		</main>
+	</body>
+</html>
+
+<style is:global>
+	@tailwind base;
+	@tailwind components;
+	@tailwind utilities;
+
+	.prose {
+		@apply text-slate-200;
+	}
+	.prose h2 {
+		@apply text-3xl font-semibold text-white tracking-tight;
+	}
+	.prose h3 {
+		@apply text-xl font-semibold text-white/90 tracking-tight;
+	}
+	.prose p {
+		@apply text-slate-300 leading-7;
+	}
+	.prose code {
+		@apply rounded bg-slate-900/60 px-1 py-0.5 text-slate-100;
+	}
+	.prose pre code {
+		@apply block rounded-xl bg-slate-900/70 p-4 text-slate-100 shadow-soft ring-1 ring-white/5;
+	}
+</style>
+
